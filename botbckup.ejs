@@ -1,0 +1,114 @@
+
+// Handle polling errors
+bot.on('polling_error', (error) => {
+  console.error('Polling error:', error);
+});
+
+// Handle /start command
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id;
+  bot.sendMessage(chatId, "Welcome! Please choose an option:", {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'Masuk', callback_data: 'in' }],
+        [{ text: 'Keluar', callback_data: 'out' }]
+      ]
+    }
+  });
+});
+
+// Handle callback queries
+bot.on('callback_query', (callbackQuery) => {
+  const message = callbackQuery.message;
+  const chatId = message.chat.id;
+  const data = callbackQuery.data.split(',');
+
+  if (data.length === 1) {
+    const type = data[0];
+    // Retrieve categories from the database
+    db.query('SELECT DISTINCT kategori FROM barang', (err, results) => {
+      if (err) {
+        console.error('Error retrieving categories:', err.stack);
+        bot.sendMessage(chatId, "Failed to retrieve categories.");
+        return;
+      }
+
+      const options = results.map((item) => {
+        return [{ text: item.kategori, callback_data: `${type},${item.kategori}` }];
+      });
+
+      bot.sendMessage(chatId, `You chose ${type === 'in' ? 'Masuk' : 'Keluar'}. Please choose a category:`, {
+        reply_markup: {
+          inline_keyboard: options
+        }
+      });
+    });
+  } else if (data.length === 2) {
+    const [type, category] = data;
+    // Retrieve items from the database based on category
+    db.query('SELECT id_barang, merk FROM barang WHERE kategori = ?', [category], (err, results) => {
+      if (err) {
+        console.error('Error retrieving items:', err.stack);
+        bot.sendMessage(chatId, "Failed to retrieve items.");
+        return;
+      }
+
+      const options = results.map((item) => {
+        return [{ text: item.merk, callback_data: `${type},${category},${item.id_barang}` }];
+      });
+
+      bot.sendMessage(chatId, `You chose category ${category}. Please choose an item:`, {
+        reply_markup: {
+          inline_keyboard: options
+        }
+      });
+    });
+  } else if (data.length === 3) {
+    const [type, category, id_barang] = data;
+    bot.sendMessage(chatId, `You chose item ${id_barang}. Please enter the quantity and description (e.g., 10, New stock):`);
+
+    bot.once('message', (msg) => {
+      const [jumlah, keterangan] = msg.text.split(',').map(item => item.trim());
+
+      if (!jumlah || isNaN(jumlah) || !keterangan) {
+        bot.sendMessage(chatId, "Invalid format. Use the format: quantity, description");
+        return;
+      }
+
+      // Start transaction
+      db.beginTransaction((err) => {
+        if (err) throw err;
+
+        const insertQuery = 'INSERT INTO transactions (type, id_barang, jumlah, keterangan) VALUES (?, ?, ?, ?)';
+        db.query(insertQuery, [type, id_barang, jumlah, keterangan], (err, result) => {
+          if (err) {
+            return db.rollback(() => {
+              console.error('Error executing query:', err.stack);
+              bot.sendMessage(chatId, `Failed to record ${type === 'in' ? 'incoming' : 'outgoing'} item.`);
+            });
+          }
+
+          const updateQuery = `UPDATE barang SET jumlah = jumlah ${type === 'in' ? '+' : '-'} ? WHERE id_barang = ?`;
+          db.query(updateQuery, [jumlah, id_barang], (err, result) => {
+            if (err) {
+              return db.rollback(() => {
+                console.error('Error executing update query:', err.stack);
+                bot.sendMessage(chatId, `Failed to update item quantity.`);
+              });
+            }
+
+            db.commit((err) => {
+              if (err) {
+                return db.rollback(() => {
+                  console.error('Error committing transaction:', err.stack);
+                  bot.sendMessage(chatId, "Failed to complete transaction.");
+                });
+              }
+              bot.sendMessage(chatId, `Successfully recorded ${type === 'in' ? 'incoming' : 'outgoing'} item and updated quantity.`);
+            });
+          });
+        });
+      });
+    });
+  }
+});

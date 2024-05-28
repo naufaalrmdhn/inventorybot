@@ -1,0 +1,96 @@
+<%- contentFor('HeaderCss') %>
+	<!-- plugin css -->
+	<link href="/libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.css" rel="stylesheet" type="text/css" />
+
+	<%- contentFor('body') %>
+		<div class="row">
+			<div class="col-12">
+				<div class="card">
+					<div class="card-body">
+						<h4 class="header-title mb-3">World Map</h4>
+						<div id="world-map-markers" style="height: 420px"></div>
+					</div>
+					<!-- end card-body-->
+				</div>
+				<!-- end card-->
+			</div>
+			<!-- end col-->
+		</div>
+		<!-- end row-->
+
+		<div class="row">
+			<div class="col-lg-6">
+				<div class="card">
+					<div class="card-body">
+						<h4 class="header-title mb-3">USA Map</h4>
+						<div id="usa-vectormap" style="height: 350px"></div>
+					</div>
+					<!-- end card-body-->
+				</div>
+				<!-- end card-->
+			</div>
+			<!-- end col-->
+
+			<div class="col-lg-6">
+				<div class="card">
+					<div class="card-body">
+						<h4 class="header-title mb-3">Canada Map</h4>
+						<div id="canada-vectormap" style="height: 350px"></div>
+					</div>
+					<!-- end card-body-->
+				</div>
+				<!-- end card-->
+			</div>
+			<!-- end col-->
+
+		</div>
+		<!-- end row-->
+
+
+		<div class="row">
+
+			<div class="col-lg-6">
+				<div class="card">
+					<div class="card-body">
+						<h4 class="header-title mb-3">UK Map</h4>
+						<div id="uk-vectormap" style="height: 350px"></div>
+					</div>
+					<!-- end card-body-->
+				</div>
+				<!-- end card-->
+			</div>
+			<!-- end col-->
+
+			<div class="col-lg-6">
+				<div class="card">
+					<div class="card-body">
+						<h4 class="header-title mb-3">Australia Map</h4>
+						<div id="australia-vectormap" style="height: 350px"></div>
+					</div>
+					<!-- end card-body-->
+				</div>
+				<!-- end card-->
+			</div>
+			<!-- end col-->
+
+
+		</div>
+		<!-- end row-->
+
+		<%- contentFor('FooterJs') %>
+			<!-- Plugins js-->
+			<script src="/libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.min.js"></script>
+			<script src="/libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-world-mill-en.js"></script>
+			<script src="/libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-us-merc-en.js"></script>
+			<script src="/libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-in-mill-en.js"></script>
+			<script src="/libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-au-mill-en.js"></script>
+			<script
+				src="/libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-us-il-chicago-mill-en.js"></script>
+			<script src="/libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-uk-mill-en.js"></script>
+			<script src="/libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-ca-lcc-en.js"></script>
+			<script src="/libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-europe-mill-en.js"></script>
+			<script src="/libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-fr-merc-en.js"></script>
+			<script src="/libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-es-merc.js"></script>
+			<script src="/libs/admin-resources/jquery.vectormap/maps/jquery-jvectormap-es-mill.js"></script>
+			<!-- Init js-->
+			<script src="/js/pages/vector-maps.init.js"></script>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <%- include ('./title-meta') %>
+
+    <%- HeaderCss %>
+    <%- include ('./head-css') %>
+</head>
+
+<body class="loading" data-layout-color="light" data-layout-mode="default" data-layout-size="fluid"
+      data-topbar-color="light" data-leftbar-position="fixed" data-leftbar-color="light" data-leftbar-size='default'
+      data-sidebar-user='true'>
+
+<!-- Pre-loader -->
+<div id="preloader">
+    <div id="status">
+        <div class="spinner">Loading...</div>
+    </div>
+</div>
+<!-- End Preloader-->
+
+<div id="wrapper">
+
+    <%- include ('./topbar') %>
+
+    <%- include ('./left-sidebar') %>
+
+    <div class="content-page">
+        <div class="content">
+
+            <div class="container-fluid">
+                <%- body %>
+            </div>
+
+        </div>
+
+        <%- include ('./footer') %>
+
+    </div>
+
+</div>
+
+<%- include ('./right-sidebar') %>
+
+<%- include ('./vendor') %>
+
+<%- FooterJs %>
+
+<!-- App js-->
+<script src="/js/app.min.js"></script>
+
+</body>
+</html>

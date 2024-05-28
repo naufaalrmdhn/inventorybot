@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- contentFor('HeaderCss') %>
+<head>
+<link href="/libs/datatables.net-bs5/css/dataTables.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+<link href="/libs/datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+<link href="/libs/datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+<link href="/libs/datatables.net-select-bs5/css//select.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+
+
+<style>
+    .bg-in {
+        color: #d4edda; /* Hijau muda */
+    }
+    .bg-out {
+        color: #f8d7da; /* Merah muda */
+    }
+</style>
+</head>
+
+<%- contentFor('body') %>
+<body>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="mt-0 header-title">Data Transaksi Barang In & Out</h4>
+                <p class="text-muted font-14 mb-3">
+                    Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eius laborum, a, impedit in, numquam at nisi amet itaque qui accusantium eveniet nesciunt exercitationem dolores aliquam assumenda quasi praesentium laudantium. Error!
+                </p>
+
+                   <!-- Tombol kategori dan Tambah Barang -->
+                   <form class="row g-3">
+                    
+                    <div class="col-xl-2 col-md-3">
+                        <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addTransaksiModal">
+                            Tambah Transaksi Baru
+                        </button>
+                
+                   
+                </form>
+
+                
+    <!-- Modal untuk menambah transaksi baru -->
+    <div class="modal fade" id="addTransaksiModal" tabindex="-1" aria-labelledby="addTransaksiModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTransaksiModalLabel">Tambah Transaksi Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="/transaksi/create" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="type" class="form-label">Type</label>
+                            <select name="type" id="type" class="form-control">
+                                <option value="in">Masuk</option>
+                                <option value="out">Keluar</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_barang" class="form-label">ID Barang</label>
+                            <input type="text" class="form-control" id="id_barang" name="id_barang" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="jumlah" class="form-label">Jumlah</label>
+                            <input type="number" class="form-control" id="jumlah" name="jumlah" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="keterangan" class="form-label">Keterangan</label>
+                            <input type="text" class="form-control" id="keterangan" name="keterangan">
+                        </div>
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary">Tambah</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+                <table id="responsive-datatable" class="table table-bordered table-bordered dt-responsive nowrap">
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>Desc.Barang</th>
+                        <th>Jumlah</th>
+                        <th>Dari | Tujuan</th>
+                        <th>Tanggal</th>
+                        <th>Penginput</th>
+                        <th>Gambar</th>
+                        
+                      </tr>
+                    </thead>
+                    <tbody>
+                        <% 
+                        // Function to format date with month names
+                        function formatDate(dateString) {
+                            const options = { day: '2-digit', month: 'long', year: 'numeric' };
+                            const date = new Date(dateString);
+                            return date.toLocaleDateString('id-ID', options);
+                        }
+        
+                        transactions.forEach(transaction => { %>
+                            <tr>
+                                
+                                <td style="background-color: <%=  transaction.type === 'in' ? '#d4edda' : '#f8d7da' %>;">
+                                    <%= transaction.type %>
+                                </td>
+                                
+                                <td><%= transaction.deskripsi %></td>
+                                <td><%= transaction.jumlah %></td>
+                                <td><%= transaction.keterangan %></td>
+                                <td><%= formatDate(transaction.created_at) %></td>
+                                <td><%= transaction.username %></td>
+                                <td>
+                                    <% if (transaction.images && transaction.images.length > 0) { %>
+                                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#imageModal<%= transaction.id %>">
+                                            View Images
+                                        </button>
+                
+                                        <!-- Modal for viewing images -->
+                                        <div class="modal fade" id="imageModal<%= transaction.id %>" tabindex="-1" aria-labelledby="imageModalLabel<%= transaction.id %>" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="imageModalLabel<%= transaction.id %>">Images</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="row">
+                                                            <% transaction.images.forEach(image => { %>
+                                                                <div class="col-6 col-md-4 mb-3">
+                                                                    <img src="/get-image/<%= image.file_id %>" class="img-fluid" alt="Image <%= image.file_id %>">
+                                                                </div>
+                                                            <% }) %>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% } else { %>
+                                        No images
+                                    <% } %>
+                                </td>
+                                <td>
+                                                <!-- Button untuk membuka modal update -->
+                                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#updateModal<%= transaction.id %>">Update</button>
+                                        <!-- Form untuk menghapus transaksi -->
+                                        <form action="/transaksi/delete/<%= transaction.id %>" method="POST" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                        </form>
+                            </td>
+                            
+        
+                                       <!-- Modal untuk update transaksi -->
+                            <div class="modal fade" id="updateModal<%= transaction.id %>" tabindex="-1" aria-labelledby="updateModalLabel<%= transaction.id %>" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="updateModalLabel<%= transaction.id %>">Update Transaction</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <form action="/transaksi/<%= transaction.id %>" method="POST">
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label for="type<%= transaction.id %>" class="form-label">Type</label>
+                                                    <select name="type" id="type<%= transaction.id %>" class="form-control">
+                                                        <option value="in" <%= transaction.type === 'in' ? 'selected' : '' %>>Masuk</option>
+                                                        <option value="out" <%= transaction.type === 'out' ? 'selected' : '' %>>Keluar</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="id_barang<%= transaction.id %>" class="form-label">ID Barang</label>
+                                                    <input type="text" class="form-control" id="id_barang<%= transaction.id %>" name="id_barang" value="<%= transaction.id_barang %>" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="jumlah<%= transaction.id %>" class="form-label">Jumlah</label>
+                                                    <input type="number" class="form-control" id="jumlah<%= transaction.id %>" name="jumlah" value="<%= transaction.jumlah %>" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="keterangan<%= transaction.id %>" class="form-label">Keterangan</label>
+                                                    <input type="text" class="form-control" id="keterangan<%= transaction.id %>" name="keterangan" value="<%= transaction.keterangan %>">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="username<%= transaction.id %>" class="form-label">Username</label>
+                                                    <input type="text" class="form-control" id="username<%= transaction.id %>" name="username" value="<%= transaction.username %>" required>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                                <button type="submit" class="btn btn-primary">Save changes</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                  </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- end row -->
+
+
+<%- contentFor('FooterJs') %>
+
+	<!-- third party js -->
+	<script src="/libs/datatables.net/js/jquery.dataTables.min.js"></script>
+	<script src="/libs/datatables.net-bs5/js/dataTables.bootstrap5.min.js"></script>
+	<script src="/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+	<script src="/libs/datatables.net-responsive-bs5/js/responsive.bootstrap5.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/dataTables.buttons.min.js"></script>
+	<script src="/libs/datatables.net-buttons-bs5/js/buttons.bootstrap5.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/buttons.html5.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/buttons.flash.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/buttons.print.min.js"></script>
+	<script src="/libs/datatables.net-keytable/js/dataTables.keyTable.min.js"></script>
+	<script src="/libs/datatables.net-select/js/dataTables.select.min.js"></script>
+	<script src="/libs/pdfmake/build/pdfmake.min.js"></script>
+	<script src="/libs/pdfmake/build/vfs_fonts.js"></script>
+	<!-- third party js ends -->
+
+	<!-- Datatables init -->
+	<script src="/js/pages/datatables.init.js"></script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<%- contentFor('HeaderCss') %>
+<link href="/libs/datatables.net-bs5/css/dataTables.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+<link href="/libs/datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+<link href="/libs/datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+<link href="/libs/datatables.net-select-bs5/css//select.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+
+
+<%- contentFor('body') %>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="mt-0 header-title">Data Barang</h4>
+                <p class="text-muted font-14 mb-3">
+                    Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eius laborum, a, impedit in, numquam at nisi amet itaque qui accusantium eveniet nesciunt exercitationem dolores aliquam assumenda quasi praesentium laudantium. Error!
+                </p>
+
+                   <!-- Tombol kategori dan Tambah Barang -->
+                   <form class="row g-3">
+                    
+                    <div class="col-xl-2 col-md-3">
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addBarangModal">
+                            Tambah Barang
+                          </button>
+                    </div>
+                    <div class="col-xl-2 col-md-3">
+                        
+                          <div class="input-group mb-3">
+                            <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                              Pilih Kategori Barang
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                              <li><a class="dropdown-item" href="/barang">Semua Kategori</a></li>
+                              <% categories.forEach(kategori => { %>
+                                <li><a class="dropdown-item" href="/barang/filter?kategori=<%= kategori %>"><%= kategori %></a></li>
+                              <% }) %>
+                            </ul>
+                          </div>
+                    </div>
+                </form>
+
+                  <!-- Modal untuk menambah barang baru -->
+                    <div class="modal fade" id="addBarangModal" tabindex="-1" aria-labelledby="addBarangModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                            <h5 class="modal-title" id="addBarangModalLabel">Tambah Barang Baru</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form action="/barang" method="post">
+                            <div class="modal-body">
+                              <div class="mb-3">
+                                <label for="id" class="form-label">ID Barang</label>
+        <input type="text" class="form-control" id="id" name="id_display" disabled>
+        <input type="hidden" name="id_barang" id="id_barang">
+                              </div>
+                                <div class="mb-3">
+                                <label for="merk" class="form-label">Merk</label>
+                                <input type="text" class="form-control" id="merk" name="merk" required>
+                                </div>
+                                <div class="mb-3">
+                                <label for="kategori" class="form-label">Kategori</label>
+                                <input type="text" class="form-control" id="kategori" name="kategori" required>
+                                </div>
+                                <div class="mb-3">
+                                <label for="deskripsi" class="form-label">Deskripsi</label>
+                                <input type="text" class="form-control" id="deskripsi" name="deskripsi" required>
+                                </div>
+                                <div class="mb-3">
+                                <label for="jumlah" class="form-label">Jumlah</label>
+                                <input type="number" class="form-control" id="jumlah" name="jumlah" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                <button type="submit" class="btn btn-primary">Tambah</button>
+                            </div>
+                            </form>
+                            
+<script>
+  // Tangkap input kategori
+  const inputKategori = document.getElementById('kategori');
+  // Tangkap input id_barang yang ditampilkan
+  const inputIdBarangDisplay = document.getElementById('id');
+  // Tangkap input id_barang yang di-hidden
+  const inputIdBarang = document.getElementById('id_barang');
+
+  // Tambahkan event listener untuk input kategori
+  inputKategori.addEventListener('input', function() {
+      // Dapatkan nilai kategori dari input
+      const kategori = inputKategori.value.trim();
+      // Dapatkan tanggal saat ini
+      const today = new Date();
+      // Format tanggal dengan MMDD
+      const datePart = `${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}`;
+      // Generate random 3-digit number
+      const randomPart = Math.floor(100 + Math.random() * 900);
+      // Gabungkan kategori, tanggal, dan angka acak untuk membentuk id_barang
+      const id_barang = `${kategori.toUpperCase().substr(0, 3)}${datePart}${randomPart}`;
+      
+      // Atur nilai input id_barang yang ditampilkan
+      inputIdBarangDisplay.value = id_barang;
+      // Atur nilai input id_barang yang di-hidden
+      inputIdBarang.value = id_barang;
+  });
+</script>
+                        </div>
+                        </div>
+                    </div>
+
+
+                <table id="datatable" class="table table-bordered dt-responsive table-responsive nowrap">
+                    <thead>
+                      <tr>
+                        <th>ID Barang</th>
+                        <th>Kategori</th>
+                        <th>Merk</th>
+                        <th>Deskripsi</th>
+                        <th>Jumlah</th>
+                        <th>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% barang.forEach(item => { %>
+                        <tr>
+                          <td><%= item.id_barang %></td>
+                          <td><%= item.kategori %></td>
+                          <td><%= item.merk %></td>
+                          <td><%= item.deskripsi %></td>
+                          <td><%= item.jumlah %></td>
+                          <td>
+                            <!-- Form untuk memperbarui barang -->
+                            <form action="/barang/<%= item.id_barang %>" method="POST" style="display: inline;">
+                              <input type="text" name="merk" value="<%= item.merk %>" required>
+                              <input type="text" name="kategori" value="<%= item.kategori %>" required>
+                              <input type="text" name="deskripsi" value="<%= item.deskripsi %>" required>
+                              <input type="number" name="jumlah" value="<%= item.jumlah %>" required>
+                              <button type="submit">Update</button>
+                            </form>
+                            <!-- Form untuk menghapus barang -->
+                            <form action="/barang/delete/<%= item.id_barang %>" method="POST" style="display: inline;">
+                              <button type="submit">Delete</button>
+                            </form>
+                          </td>
+                        </tr>
+                      <% }) %>
+                    </tbody>
+                  </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- end row -->
+
+
+<%- contentFor('FooterJs') %>
+
+	<!-- third party js -->
+	<script src="/libs/datatables.net/js/jquery.dataTables.min.js"></script>
+	<script src="/libs/datatables.net-bs5/js/dataTables.bootstrap5.min.js"></script>
+	<script src="/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+	<script src="/libs/datatables.net-responsive-bs5/js/responsive.bootstrap5.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/dataTables.buttons.min.js"></script>
+	<script src="/libs/datatables.net-buttons-bs5/js/buttons.bootstrap5.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/buttons.html5.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/buttons.flash.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/buttons.print.min.js"></script>
+	<script src="/libs/datatables.net-keytable/js/dataTables.keyTable.min.js"></script>
+	<script src="/libs/datatables.net-select/js/dataTables.select.min.js"></script>
+	<script src="/libs/pdfmake/build/pdfmake.min.js"></script>
+	<script src="/libs/pdfmake/build/vfs_fonts.js"></script>
+	<!-- third party js ends -->
+
+	<!-- Datatables init -->
+	<script src="/js/pages/datatables.init.js"></script>
