@@ -6,41 +6,100 @@ const axios = require('axios');
 
 // Tambahkan rute untuk halaman transaksi
 route.get('/', (req, res) => {
-    const query = `
+    const itemsPerPage = parseInt(req.query.itemsPerPage) || 10; // Jumlah item per halaman, default 10
+    const page = parseInt(req.query.page) || 1; // Halaman saat ini, default halaman 1
+    const offset = (page - 1) * itemsPerPage;
+    const filterType = req.query.filterType || ''; // Filter type (in/out), default empty string (no filter)
+    const filterDate = req.query.filterDate || ''; // Filter date, default empty string (no filter)
+    const filterMonth = req.query.filterMonth || ''; // Filter month, default empty string (no filter)
+
+    let countQuery = 'SELECT COUNT(*) AS total FROM transactions';
+    let dataQuery = `
         SELECT transactions.*, barang.kategori, barang.deskripsi 
         FROM transactions 
         JOIN barang ON transactions.id_barang = barang.id_barang
     `;
-    
-    db.query(query, (err, transactions) => {
+
+    let queryParams = [];
+    let conditions = [];
+
+    // Apply filter type if provided
+    if (filterType) {
+        conditions.push('transactions.type = ?');
+        queryParams.push(filterType);
+    }
+
+    // Apply filter date if provided
+    if (filterDate) {
+        conditions.push('DATE(transactions.created_at) = ?');
+        queryParams.push(filterDate);
+    }
+
+    // Apply filter month if provided
+    if (filterMonth) {
+        conditions.push('MONTH(transactions.created_at) = ?');
+        queryParams.push(filterMonth);
+    }
+
+    // Combine conditions to the query
+    if (conditions.length > 0) {
+        const whereClause = ' WHERE ' + conditions.join(' AND ');
+        countQuery += whereClause;
+        dataQuery += whereClause;
+    }
+
+    dataQuery += ' LIMIT ? OFFSET ?';
+    queryParams.push(itemsPerPage, offset);
+
+    // Query untuk mendapatkan total transaksi
+    db.query(countQuery, queryParams.slice(0, queryParams.length - 2), (err, countResult) => {
         if (err) {
             return res.status(500).send(err.message);
         }
 
-        // Get images for each transaction
-        const transactionWithImages = transactions.map(transaction => {
-            return new Promise((resolve, reject) => {
-                db.query(`SELECT file_id FROM images WHERE transaction_id = ?`, [transaction.id], (imageErr, imageResults) => {
-                    if (imageErr) {
-                        return reject(imageErr);
-                    }
-                    transaction.images = imageResults;
-                    resolve(transaction);
+        const totalItems = countResult[0].total;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+        // Query untuk mendapatkan transaksi dengan limit dan offset
+        db.query(dataQuery, queryParams, (err, transactions) => {
+            if (err) {
+                return res.status(500).send(err.message);
+            }
+
+            // Mendapatkan gambar untuk setiap transaksi
+            const transactionWithImages = transactions.map(transaction => {
+                return new Promise((resolve, reject) => {
+                    db.query(`SELECT file_id FROM images WHERE transaction_id = ?`, [transaction.id], (imageErr, imageResults) => {
+                        if (imageErr) {
+                            return reject(imageErr);
+                        }
+                        transaction.images = imageResults;
+                        resolve(transaction);
+                    });
                 });
             });
-        });
 
-        Promise.all(transactionWithImages).then(finalTransactions => {
-            res.render('transaksi', { 
-                title: 'List Transaksi', 
-                page_title: 'transaksi', 
-                transactions: finalTransactions 
+            Promise.all(transactionWithImages).then(finalTransactions => {
+                res.render('transaksi', { 
+                    title: 'List Transaksi', 
+                    page_title: 'transaksi', 
+                    transactions: finalTransactions,
+                    itemsPerPage: itemsPerPage,
+                    currentPage: page,
+                    totalPages: totalPages,
+                    filterType: filterType,
+                    filterDate: filterDate,
+                    filterMonth: filterMonth
+                });
+            }).catch(error => {
+                return res.status(500).send(error.message);
             });
-        }).catch(error => {
-            return res.status(500).send(error.message);
         });
     });
 });
+
+
+
 
 
 
@@ -122,27 +181,37 @@ route.post('/delete/:id', (req, res) => {
         const transaction = result[0];
         const jumlahChange = transaction.type === 'in' ? -transaction.jumlah : transaction.jumlah;
 
-        // Delete the transaction
-        db.query('DELETE FROM transactions WHERE id = ?', [id], (deleteErr) => {
-            if (deleteErr) {
-                console.error('Error executing query:', deleteErr);
+        // Step 1: Delete related images first
+        db.query('DELETE FROM images WHERE transaction_id = ?', [id], (deleteImagesErr) => {
+            if (deleteImagesErr) {
+                console.error('Error deleting images:', deleteImagesErr);
                 res.status(500).send('Internal Server Error');
                 return;
             }
 
-            // Update the stock quantity
-            db.query('UPDATE barang SET jumlah = jumlah + ? WHERE id_barang = ?', [jumlahChange, transaction.id_barang], (updateErr) => {
-                if (updateErr) {
-                    console.error('Error updating barang quantity:', updateErr);
+            // Step 2: Delete the transaction
+            db.query('DELETE FROM transactions WHERE id = ?', [id], (deleteTransactionErr) => {
+                if (deleteTransactionErr) {
+                    console.error('Error deleting transaction:', deleteTransactionErr);
                     res.status(500).send('Internal Server Error');
                     return;
                 }
 
-                res.redirect('/transaksi');
+                // Step 3: Update the stock quantity
+                db.query('UPDATE barang SET jumlah = jumlah + ? WHERE id_barang = ?', [jumlahChange, transaction.id_barang], (updateErr) => {
+                    if (updateErr) {
+                        console.error('Error updating barang quantity:', updateErr);
+                        res.status(500).send('Internal Server Error');
+                        return;
+                    }
+
+                    res.redirect('/transaksi');
+                });
             });
         });
     });
 });
+
 
 
 module.exports = route;

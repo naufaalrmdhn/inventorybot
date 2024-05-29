@@ -15,6 +15,41 @@
     .bg-out {
         color: #f8d7da; /* Merah muda */
     }
+    @media print {
+        .d-print-none {
+            display: none !important;
+        }
+        .no-print {
+            display: none !important;
+        }
+
+        body {
+            font-size: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 4px;
+            border: 1px solid #000;
+        }
+
+        th {
+            font-size: 12px;
+        }
+
+        td {
+            font-size: 10px;
+        }
+
+        .table-responsive {
+            overflow: visible;
+        }
+    }
+    
 </style>
 </head>
 
@@ -34,12 +69,12 @@
                    <form class="row g-3">
                     
                     <div class="col-xl-2 col-md-3">
-                        <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addTransaksiModal">
+                        <button type="button"  class="btn btn-primary mb-3 d-print-none" data-bs-toggle="modal" data-bs-target="#addTransaksiModal">
                             Tambah Transaksi Baru
                         </button>
                 
                    
-                </form>
+                    </form>
 
                 
     <!-- Modal untuk menambah transaksi baru -->
@@ -84,9 +119,29 @@
             </div>
         </div>
     </div>
+    <form id="filterForm" method="GET" action="/transaksi">
+        <label for="itemsPerPage">Items per page:</label>
+        <select id="itemsPerPage" name="itemsPerPage" onchange="document.getElementById('filterForm').submit()">
+            <option value="10" <%= itemsPerPage == 10 ? 'selected' : '' %>>10</option>
+            <option value="25" <%= itemsPerPage == 25 ? 'selected' : '' %>>25</option>
+            <option value="50" <%= itemsPerPage == 50 ? 'selected' : '' %>>50</option>
+            <option value="100" <%= itemsPerPage == 100 ? 'selected' : '' %>>100</option>
+        </select>
+
+        <label for="filterType">Filter by type:</label>
+        <select id="filterType" name="filterType" onchange="document.getElementById('filterForm').submit()">
+            <option value="" <%= !filterType ? 'selected' : '' %>>All</option>
+            <option value="in" <%= filterType === 'in' ? 'selected' : '' %>>Masuk</option>
+            <option value="out" <%= filterType === 'out' ? 'selected' : '' %>>Keluar</option>
+        </select>
+
+        <label for="filterDate">Filter by date:</label>
+        <input type="date" id="filterDate" name="filterDate" value="<%= filterDate %>" onchange="document.getElementById('filterForm').submit()">
+
+    </form>
 
 
-                <table id="responsive-datatable" class="table table-bordered table-bordered dt-responsive nowrap">
+                <table id="datatable" class="table table-bordered dt-responsive table-responsive nowrap">
                     <thead>
                       <tr>
                         <th>Type</th>
@@ -95,7 +150,7 @@
                         <th>Dari | Tujuan</th>
                         <th>Tanggal</th>
                         <th>Penginput</th>
-                        <th>Gambar</th>
+                        <th class="d-print-none">Gambar</th> <!-- Sembunyikan saat cetak -->  
                         
                       </tr>
                     </thead>
@@ -120,7 +175,7 @@
                                 <td><%= transaction.keterangan %></td>
                                 <td><%= formatDate(transaction.created_at) %></td>
                                 <td><%= transaction.username %></td>
-                                <td>
+                                <td class="d-print-none">
                                     <% if (transaction.images && transaction.images.length > 0) { %>
                                         <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#imageModal<%= transaction.id %>">
                                             View Images
@@ -153,17 +208,20 @@
                                         No images
                                     <% } %>
                                 </td>
-                                <td>
-                                                <!-- Button untuk membuka modal update -->
-                                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#updateModal<%= transaction.id %>">Update</button>
-                                        <!-- Form untuk menghapus transaksi -->
-                                        <form action="/transaksi/delete/<%= transaction.id %>" method="POST" style="display: inline;">
-                                            <button type="submit" class="btn btn-danger">Delete</button>
-                                        </form>
-                            </td>
+                                <td class="d-print-none">
+               <!-- Icon untuk Update dan Delete -->
+               <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#updateModal<%= transaction.id %>">
+                <i class="fa fa-edit"></i>
+            </button>
+            <form action="/transaksi/delete/<%= transaction.id %>" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fa fa-trash"></i>
+                </button>
+            </form>
+                            
                             
         
-                                       <!-- Modal untuk update transaksi -->
+                            <!-- Modal untuk update transaksi -->
                             <div class="modal fade" id="updateModal<%= transaction.id %>" tabindex="-1" aria-labelledby="updateModalLabel<%= transaction.id %>" aria-hidden="true">
                                 <div class="modal-dialog">
                                     <div class="modal-content">
@@ -209,7 +267,28 @@
                             </tr>
                         <% }); %>
                     </tbody>
-                  </table>
+                </table>
+
+
+                
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        <% for (let i = 1; i <= totalPages; i++) { %>
+                            <li class="page-item <%= currentPage == i ? 'active' : '' %>">
+                                <a class="page-link" href="/transaksi?page=<%= i %>&itemsPerPage=<%= itemsPerPage %>"><%= i %></a>
+                            </li>
+                        <% } %>
+                    </ul>
+                </nav>
+                <hr>
+                <div class="d-print-none">
+                    <div class="float-start">
+                        <a href="javascript:window.print()" class="btn btn-dark waves-effect waves-light">
+                            <i class="fa fa-print"> Print</i>
+                        </a>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
             </div>
         </div>
 
@@ -235,7 +314,11 @@
 	<script src="/libs/pdfmake/build/pdfmake.min.js"></script>
 	<script src="/libs/pdfmake/build/vfs_fonts.js"></script>
 	<!-- third party js ends -->
-
+    <script>
+        $(document).ready(function() {
+            $('#datatable').DataTable();
+        });
+    </script>
 	<!-- Datatables init -->
 	<script src="/js/pages/datatables.init.js"></script>
 </body>
