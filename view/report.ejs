@@ -1,0 +1,132 @@
+<%- contentFor('HeaderCss') %>
+<link href="/libs/datatables.net-bs5/css/dataTables.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+<link href="/libs/datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+<link href="/libs/datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+<link href="/libs/datatables.net-select-bs5/css//select.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
+
+<style>
+	@media print {
+		body * {
+			visibility: hidden;
+		}
+		#reportToPrint, #reportToPrint * {
+			visibility: visible;
+		}
+		#reportToPrint {
+			position: absolute;
+			left: 0;
+			top: 0;
+		}
+	}
+</style>
+<%- contentFor('body') %>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="mt-0 header-title">Laporan Transaksi</h4>
+                <p class="text-muted font-14 mb-3">
+                    Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eius laborum, a, impedit in, numquam at nisi amet itaque qui accusantium eveniet nesciunt exercitationem dolores aliquam assumenda quasi praesentium laudantium. Error!
+                </p>
+				
+				<button type="button" class="btn btn-success"  onclick="printReport()">
+					Print Report
+				</button>
+				<form action="/report" method="POST">
+					<label for="reportType">Choose Report Type:</label>
+					<select id="reportType" name="reportType">
+						<option value="monthly">Monthly</option>
+						<option value="threeMonths">Last 3 Months</option>
+					</select>
+					<button type="submit">Show Report</button>
+				</form>
+			
+				<button onclick="printReport()">Print Report</button>
+			
+				<div id="reportToPrint">
+					<% if (showMonthly) { %>
+						<h2>Monthly Report</h2>
+						<table class="table table-bordered">
+							<thead>
+								<tr>
+									<th>Month</th>
+									<th>Category</th>
+									<th>Type</th>
+									<th>Transaction Count</th>
+									<th>Total Quantity</th>
+								</tr>
+							</thead>
+							<tbody>
+								<% monthlyResults.forEach(result => { %>
+									<tr>
+										<td><%= result.month %></td>
+										<td><%= result.category %></td>
+										<td style="background-color: <%= result.type === 'in' ? 'lightgreen' : 'lightcoral' %>;"><%= result.type %></td>
+										<td><%= result.transaction_count %></td>
+										<td><%= result.total_quantity %></td>
+									</tr>
+								<% }); %>
+							</tbody>
+						</table>
+					<% } %>
+			
+					<% if (showThreeMonths) { %>
+						<h2>Last 3 Months Report</h2>
+						<table class="table table-bordered">
+							<thead>
+								<tr>
+									<th>Month</th>
+									<th>Category</th>
+									<th>Type</th>
+									<th>Transaction Count</th>
+									<th>Total Quantity</th>
+								</tr>
+							</thead>
+							<tbody>
+								<% threeMonthsResults.forEach(result => { %>
+									<tr>
+										<td><%= result.month %></td>
+										<td><%= result.category %></td>
+										<td style="background-color: <%= result.type === 'in' ? 'lightgreen' : 'lightcoral' %>;"><%= result.type %></td>
+										<td><%= result.transaction_count %></td>
+										<td><%= result.total_quantity %></td>
+									</tr>
+								<% }); %>
+							</tbody>
+						</table>
+					<% } %>
+				</div>
+                 
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- end row -->
+
+
+<%- contentFor('FooterJs') %>
+
+	<!-- third party js -->
+	<script src="/libs/datatables.net/js/jquery.dataTables.min.js"></script>
+	<script src="/libs/datatables.net-bs5/js/dataTables.bootstrap5.min.js"></script>
+	<script src="/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+	<script src="/libs/datatables.net-responsive-bs5/js/responsive.bootstrap5.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/dataTables.buttons.min.js"></script>
+	<script src="/libs/datatables.net-buttons-bs5/js/buttons.bootstrap5.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/buttons.html5.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/buttons.flash.min.js"></script>
+	<script src="/libs/datatables.net-buttons/js/buttons.print.min.js"></script>
+	<script src="/libs/datatables.net-keytable/js/dataTables.keyTable.min.js"></script>
+	<script src="/libs/datatables.net-select/js/dataTables.select.min.js"></script>
+	<script src="/libs/pdfmake/build/pdfmake.min.js"></script>
+	<script src="/libs/pdfmake/build/vfs_fonts.js"></script>
+	<!-- third party js ends -->
+	<script>
+        function printReport() {
+            window.print();
+        }
+    </script>
+	<!-- Datatables init -->
+	<script src="/js/pages/datatables.init.js"></script>

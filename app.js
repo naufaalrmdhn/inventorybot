@@ -36,6 +36,10 @@ app.use(express.static(__dirname + '/public'));
 
 app.use('/', route);
 
+const reportRouter = require('./routes/report');
+app.use('/', reportRouter);
+
+
 const db = require('./database'); // Sesuaikan path jika diperlukan
 // Handle polling errors
 bot.on('polling_error', (error) => {

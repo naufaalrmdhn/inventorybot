@@ -2,7 +2,11 @@ const express = require('express');
 const route = express.Router();
 const db = require('../database'); // Sesuaikan path jika diperlukan
 
-const transaksi = require('./transaksi');
+//report rute
+const report = require('./report');
+route.use('/report', report);
+    
+
 // Route untuk menampilkan halaman barang
 route.get('/barang', (req, res, next) => {
     db.query(`SELECT * FROM barang`, (err, results) => {
@@ -43,9 +47,8 @@ route.get('/barang', (req, res, next) => {
 });
 
 
-
-
-
+//transaksi rute
+const transaksi = require('./transaksi');
 //transaksi route
 route.use('/transaksi', transaksi);
 
@@ -57,11 +60,11 @@ route.get('/barang', (req, res) => {
 
 // Create (POST)
 route.post('/barang', (req, res) => {
-    const { id_barang, merk, kategori, deskripsi, jumlah } = req.body;
+    const { id_barang, merk, kategori, deskripsi, jumlah, sn } = req.body;
   
-    const query = `INSERT INTO barang (id_barang, merk, kategori, deskripsi, jumlah) VALUES (?, ?, ?, ?, ?)`;
+    const query = `INSERT INTO barang (id_barang, merk, kategori, deskripsi, jumlah, sn) VALUES (?, ?, ?, ?, ?, ?)`;
   
-    db.query(query, [id_barang, merk, kategori, deskripsi, jumlah], (err, results) => {
+    db.query(query, [id_barang, merk, kategori, deskripsi, jumlah, sn], (err, results) => {
       if (err) {
         return res.status(500).send(err.message);
       }

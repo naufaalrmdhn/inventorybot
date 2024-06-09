@@ -2,6 +2,7 @@
 <html lang="en">
 <%- contentFor('HeaderCss') %>
 <head>
+<link href="/libs/tablesaw/tablesaw.css" rel="stylesheet" type="text/css" />
 <link href="/libs/datatables.net-bs5/css/dataTables.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
 <link href="/libs/datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
 <link href="/libs/datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css" rel="stylesheet" type="text/css"/>
@@ -16,6 +17,14 @@
         color: #f8d7da; /* Merah muda */
     }
     @media print {
+        .dataTables_wrapper .top,
+            .dataTables_wrapper .bottom,
+            .dataTables_wrapper .dataTables_paginate,
+            .dataTables_wrapper .dataTables_length,
+            .dataTables_wrapper .search-box,
+            .dataTables_wrapper .dataTables_filter {
+                display: none;
+            }
         .d-print-none {
             display: none !important;
         }
@@ -49,6 +58,32 @@
             overflow: visible;
         }
     }
+    .dataTables_wrapper .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .dataTables_wrapper .dataTables_length {
+        float: left;
+    }
+    .dataTables_wrapper .search-box {
+        float: right;
+    }
+    .dataTables_wrapper .bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .dataTables_wrapper .dataTables_info {
+        float: left;
+        margin-top: 0.5em;
+    }
+    .dataTables_wrapper .dataTables_paginate {
+        float: right;
+        margin-top: 0.5em;
+    }
+    
+   
     
 </style>
 </head>
@@ -61,10 +96,10 @@
         <div class="card">
             <div class="card-body">
                 <h4 class="mt-0 header-title">Data Transaksi Barang In & Out</h4>
-                <p class="text-muted font-14 mb-3">
+                <!--<p class="text-muted font-14 mb-3">
                     Lorem ipsum, dolor sit amet consectetur adipisicing elit. Eius laborum, a, impedit in, numquam at nisi amet itaque qui accusantium eveniet nesciunt exercitationem dolores aliquam assumenda quasi praesentium laudantium. Error!
-                </p>
-
+                </p> -->
+                <hr>
                    <!-- Tombol kategori dan Tambah Barang -->
                    <form class="row g-3">
                     
@@ -103,6 +138,10 @@
                             <input type="number" class="form-control" id="jumlah" name="jumlah" required>
                         </div>
                         <div class="mb-3">
+                            <label for="deskripsi" class="form-label">Deskripsi</label>
+                            <input type="text" class="form-control" id="deskripsi" name="deskripsi" required>
+                        </div>
+                        <div class="mb-3">
                             <label for="keterangan" class="form-label">Keterangan</label>
                             <input type="text" class="form-control" id="keterangan" name="keterangan">
                         </div>
@@ -120,13 +159,8 @@
         </div>
     </div>
     <form id="filterForm" method="GET" action="/transaksi">
-        <label for="itemsPerPage">Items per page:</label>
-        <select id="itemsPerPage" name="itemsPerPage" onchange="document.getElementById('filterForm').submit()">
-            <option value="10" <%= itemsPerPage == 10 ? 'selected' : '' %>>10</option>
-            <option value="25" <%= itemsPerPage == 25 ? 'selected' : '' %>>25</option>
-            <option value="50" <%= itemsPerPage == 50 ? 'selected' : '' %>>50</option>
-            <option value="100" <%= itemsPerPage == 100 ? 'selected' : '' %>>100</option>
-        </select>
+       
+       
 
         <label for="filterType">Filter by type:</label>
         <select id="filterType" name="filterType" onchange="document.getElementById('filterForm').submit()">
@@ -141,7 +175,7 @@
     </form>
 
 
-                <table id="datatable" class="table table-bordered dt-responsive table-responsive nowrap">
+            <table id="responsive-datatable"  class="tablesaw table mb-0 display" data-tablesaw-mode="stack">
                     <thead>
                       <tr>
                         <th>Type</th>
@@ -151,7 +185,7 @@
                         <th>Tanggal</th>
                         <th>Penginput</th>
                         <th class="d-print-none">Gambar</th> <!-- Sembunyikan saat cetak -->  
-                        
+                        <th class="d-print-none">Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -209,17 +243,16 @@
                                     <% } %>
                                 </td>
                                 <td class="d-print-none">
-               <!-- Icon untuk Update dan Delete -->
-               <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#updateModal<%= transaction.id %>">
-                <i class="fa fa-edit"></i>
-            </button>
-            <form action="/transaksi/delete/<%= transaction.id %>" method="POST" style="display: inline;">
-                <button type="submit" class="btn btn-danger">
-                    <i class="fa fa-trash"></i>
-                </button>
-            </form>
-                            
-                            
+                                <!-- Icon untuk Update dan Delete -->
+                                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#updateModal<%= transaction.id %>">
+                                    <i class="fa fa-edit"></i>
+                                </button>
+                                <form action="/transaksi/delete/<%= transaction.id %>" method="POST" style="display: inline;">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </form>
+                                </td>             
         
                             <!-- Modal untuk update transaksi -->
                             <div class="modal fade" id="updateModal<%= transaction.id %>" tabindex="-1" aria-labelledby="updateModalLabel<%= transaction.id %>" aria-hidden="true">
@@ -238,14 +271,8 @@
                                                         <option value="out" <%= transaction.type === 'out' ? 'selected' : '' %>>Keluar</option>
                                                     </select>
                                                 </div>
-                                                <div class="mb-3">
-                                                    <label for="id_barang<%= transaction.id %>" class="form-label">ID Barang</label>
-                                                    <input type="text" class="form-control" id="id_barang<%= transaction.id %>" name="id_barang" value="<%= transaction.id_barang %>" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="jumlah<%= transaction.id %>" class="form-label">Jumlah</label>
-                                                    <input type="number" class="form-control" id="jumlah<%= transaction.id %>" name="jumlah" value="<%= transaction.jumlah %>" required>
-                                                </div>
+                                                
+                                               
                                                 <div class="mb-3">
                                                     <label for="keterangan<%= transaction.id %>" class="form-label">Keterangan</label>
                                                     <input type="text" class="form-control" id="keterangan<%= transaction.id %>" name="keterangan" value="<%= transaction.keterangan %>">
@@ -253,6 +280,19 @@
                                                 <div class="mb-3">
                                                     <label for="username<%= transaction.id %>" class="form-label">Username</label>
                                                     <input type="text" class="form-control" id="username<%= transaction.id %>" name="username" value="<%= transaction.username %>" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="images<%= transaction.id %>" class="form-label">Gambar</label>
+                                                    <input type="file" class="form-control" id="images<%= transaction.id %>" name="images" multiple>
+                                                    <input type="checkbox" id="delete_existing_images<%= transaction.id %>" name="delete_existing_images" value="1">
+                                                    <label for="delete_existing_images<%= transaction.id %>">Hapus gambar yang ada</label>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <% transaction.images.forEach(image => { %>
+                                                        <div class="col-6 col-md-4 mb-3">
+                                                            <img src="/get-image/<%= image.file_id %>" class="img-fluid" alt="Image <%= image.file_id %>">
+                                                        </div>
+                                                    <% }) %>
                                                 </div>
                                             </div>
                                             <div class="modal-footer">
@@ -267,19 +307,11 @@
                             </tr>
                         <% }); %>
                     </tbody>
-                </table>
+            </table>
 
 
                 
-                <nav aria-label="Page navigation">
-                    <ul class="pagination">
-                        <% for (let i = 1; i <= totalPages; i++) { %>
-                            <li class="page-item <%= currentPage == i ? 'active' : '' %>">
-                                <a class="page-link" href="/transaksi?page=<%= i %>&itemsPerPage=<%= itemsPerPage %>"><%= i %></a>
-                            </li>
-                        <% } %>
-                    </ul>
-                </nav>
+               
                 <hr>
                 <div class="d-print-none">
                     <div class="float-start">
@@ -303,6 +335,7 @@
 	<script src="/libs/datatables.net/js/jquery.dataTables.min.js"></script>
 	<script src="/libs/datatables.net-bs5/js/dataTables.bootstrap5.min.js"></script>
 	<script src="/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+    
 	<script src="/libs/datatables.net-responsive-bs5/js/responsive.bootstrap5.min.js"></script>
 	<script src="/libs/datatables.net-buttons/js/dataTables.buttons.min.js"></script>
 	<script src="/libs/datatables.net-buttons-bs5/js/buttons.bootstrap5.min.js"></script>
@@ -316,9 +349,29 @@
 	<!-- third party js ends -->
     <script>
         $(document).ready(function() {
-            $('#datatable').DataTable();
+            $('#responsive-datatable').DataTable({
+                "pageLength": 10,
+                "lengthMenu": [10, 25, 50, 100],
+                "dom": '<"top"lf>rt<"bottom"ip><"clear">',
+                "language": {
+                    "search": "",
+                    "lengthMenu": "Show _MENU_ entries",
+                    "info": "",
+                    "paginate": {
+                        "first": "Pertama",
+                        "last": "Terakhir",
+                        "next": "Next",
+                        "previous": "Previous",
+                    }
+                }            
+            });
         });
     </script>
+    <!-- jQuery -->
+<!-- jQuery -->
+
+<!-- DataTables JS -->
+
 	<!-- Datatables init -->
 	<script src="/js/pages/datatables.init.js"></script>
 </body>

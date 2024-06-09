@@ -1,7 +1,8 @@
 const express = require('express');
 const route = express.Router();
 const db = require('../database'); // Sesuaikan path jika diperlukan
-const axios = require('axios');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
 
 // Tambahkan rute untuk halaman transaksi
@@ -18,6 +19,7 @@ route.get('/', (req, res) => {
         SELECT transactions.*, barang.kategori, barang.deskripsi 
         FROM transactions 
         JOIN barang ON transactions.id_barang = barang.id_barang
+        ORDER BY transactions.created_at DESC
     `;
 
     let queryParams = [];
@@ -99,11 +101,6 @@ route.get('/', (req, res) => {
 });
 
 
-
-
-
-
-
 // Create a new transaction
 route.post('/create', (req, res) => {
     const { type, id_barang, jumlah, keterangan, username, deskripsi } = req.body;
@@ -133,33 +130,63 @@ route.post('/create', (req, res) => {
 
 
 // Update transaksi
-route.post('/:id', (req, res) => {
+route.post('/:id', upload.array('images', 10), (req, res) => {
     const { id } = req.params;
-    const { type, id_barang, jumlah, keterangan, username } = req.body;
-    const query = 'UPDATE transactions SET type = ?, id_barang = ?, jumlah = ?, keterangan = ?, username = ? WHERE id = ?';
+    const { type, keterangan, username, delete_existing_images } = req.body;
+    const files = req.files;
 
-    db.query(query, [type, id_barang, jumlah, keterangan, username, id], (err) => {
+    // Update transaction details
+    const query = 'UPDATE transactions SET type = ?, keterangan = ?, username = ? WHERE id = ?';
+    db.query(query, [type, keterangan, username, id], (err) => {
         if (err) {
-            console.error('Error executing query:', err);
-            res.status(500).send('Internal Server Error');
-            return;
+            console.error('Error updating transaction:', err);
+            return res.status(500).send('Internal Server Error');
         }
 
-        // Adjust barang quantity based on transaction type
-        const jumlahChange = type === 'in' ? parseInt(jumlah) : -parseInt(jumlah);
-        const updateQuery = 'UPDATE barang SET jumlah = jumlah + ? WHERE id_barang = ?';
+        if (delete_existing_images) {
+            db.query('DELETE FROM images WHERE transaction_id = ?', [id], (deleteErr) => {
+                if (deleteErr) {
+                    console.error('Error deleting images:', deleteErr);
+                    return res.status(500).send('Internal Server Error');
+                }
 
-        db.query(updateQuery, [jumlahChange, id_barang], (updateErr) => {
-            if (updateErr) {
-                console.error('Error updating barang quantity:', updateErr);
-                res.status(500).send('Internal Server Error');
-                return;
-            }
-
-            res.redirect('/transaksi');
-        });
+                // Proceed with uploading new images if any
+                handleImageUpload(id, files, res);
+            });
+        } else {
+            // Proceed with uploading new images if any
+            handleImageUpload(id, files, res);
+        }
     });
 });
+
+function handleImageUpload(transactionId, files, res) {
+    if (files.length > 0) {
+        const insertImages = files.map(file => {
+            return new Promise((resolve, reject) => {
+                const query = 'INSERT INTO images (transaction_id, file_id) VALUES (?, ?)';
+                db.query(query, [transactionId, file.filename], (err) => {
+                    if (err) {
+                        return reject(err);
+                    }
+                    resolve();
+                });
+            });
+        });
+
+        Promise.all(insertImages)
+            .then(() => {
+                res.redirect('/transaksi');
+            })
+            .catch(err => {
+                console.error('Error uploading images:', err);
+                res.status(500).send('Internal Server Error');
+            });
+    } else {
+        res.redirect('/transaksi');
+    }
+}
+
 
 // Delete a transaction
 route.post('/delete/:id', (req, res) => {
@@ -211,6 +238,8 @@ route.post('/delete/:id', (req, res) => {
         });
     });
 });
+
+
 
 
 
