@@ -10,8 +10,9 @@ const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
-
+const bcrypt = require('bcrypt');
 dotenv.config({ path: "./config.env" });
+
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'view'));
@@ -40,7 +41,37 @@ const reportRouter = require('./routes/report');
 app.use('/', reportRouter);
 
 
-const db = require('./database'); // Sesuaikan path jika diperlukan
+const pool = require('./database')// Sesuaikan path jika diperlukan
+// Konfigurasi session
+app.use(session({
+    secret: 'secret-key',
+    resave: false,
+    saveUninitialized: true
+}));
+
+// Route untuk handle POST request dari form login
+app.post('/auth-login', (req, res) => {
+    const { username, password } = req.body;
+
+    let sql = 'SELECT * FROM users WHERE username = ?';
+    pool.query(sql, [username], (err, results) => {
+        if (err) {
+            console.error('Error querying user:', err);
+            return res.status(500).json({ success: false, message: 'Error logging in' });
+        }
+
+        if (results.length && bcrypt.compareSync(password, results[0].password)) {
+            req.session.userId = results[0].id;
+            req.session.username = results[0].username;
+            console.log("Password match, user authenticated");
+            return res.json({ success: true, redirectUrl: '/' });
+        } else {
+            return res.status(400).json({ success: false, message: 'Username or password incorrect' });
+        }
+    });
+});
+
+
 // Handle polling errors
 bot.on('polling_error', (error) => {
     console.error('Polling error:', error);

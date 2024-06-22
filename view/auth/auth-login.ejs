@@ -28,25 +28,25 @@
                             <h4 class="text-uppercase mt-0">Sign In</h4>
                         </div>
 
-                        <form class="form needs-validation" novalidate action="index">
+                        <form class="form needs-validation" novalidate action="/auth-login" method="post" id="loginForm">
                             <div id="error" class="text-danger"></div>
                             <div class="mb-3">
-                                <label for="emailaddress" class="form-label">Email address</label>
-                                <input class="form-control" type="email" id="emailaddress" required placeholder="Enter your email" value="adminto@coderthemes.com" >
+                                <label for="username" class="form-label">Username</label>
+                                <input class="form-control" type="text" id="username" name="username" required placeholder="Enter your username">
                             </div>
-
+                        
                             <div class="mb-3">
                                 <label for="password" class="form-label">Password</label>
-                                <input class="form-control" type="password" required id="password" placeholder="Enter your password" value="password">
+                                <input class="form-control" type="password" id="password" name="password" required placeholder="Enter your password">
                             </div>
-
+                        
                             <div class="mb-3">
                                 <div class="form-check">
                                     <input type="checkbox" class="form-check-input" id="checkbox-signin" checked>
                                     <label class="form-check-label" for="checkbox-signin">Remember me</label>
                                 </div>
                             </div>
-
+                        
                             <div class="mb-3 d-grid text-center">
                                 <button class="btn btn-primary" type="submit"> Log In </button>
                             </div>
@@ -75,18 +75,47 @@
 <%- include ('../partials/vendor') %>
 
 <script>
-    document.querySelector(".form").addEventListener("submit", () => {
-        event.preventDefault();
+    document.getElementById("loginForm").addEventListener("submit", function(event) {
+        event.preventDefault(); // Prevent default form submission
 
-        let email = document.getElementById("emailaddress").value;
-        let pass = document.getElementById("password").value;
-        if (email == "adminto@coderthemes.com" && pass == "password") {
-            localStorage.setItem("User", email);
-            window.location.href = "/";
-        } else {
-            document.getElementById("error").innerHTML =
-                "*Invalid Email or Password";
-        }
+        let username = document.getElementById("username").value;
+        let password = document.getElementById("password").value;
+
+        const data = {
+            username: username,
+            password: password
+        };
+
+        fetch('/auth-login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            // Handle redirection manually
+            if (response.redirected) {
+                window.location.href = response.url; // Redirect to the URL indicated by server
+            } else {
+                return response.json(); // Continue handling JSON response as usual
+            }
+        })
+        .then(data => {
+            if (data && data.success) {
+                localStorage.setItem("User", username);
+                window.location.href = "/"; // Redirect to home page after successful login (fallback)
+            } else {
+                document.getElementById("error").innerHTML = "*Invalid Username or Password";
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById("error").innerHTML = "*Error logging in";
+        });
     });
 </script>
 <!-- App js -->
