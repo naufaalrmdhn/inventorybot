@@ -127,9 +127,7 @@ route.get('/barang/filter', (req, res, next) => {
 });
 
 // Dashboard
-route.get('/', (req, res, next) => {
-    res.render('index', { title: 'Dashboard' ,page_title:'Dashboard' });
-})
+
 route.get('/index', (req, res, next) => {
     res.render('index', { title: 'Dashboard',page_title:'Dashboard' });
 })
@@ -172,9 +170,9 @@ route.get('/email-templates-billing', (req, res, next) => {
 route.get('/contacts-list', (req, res, next) => {
     res.render('contacts-list', { title: 'Contacts'});
 })
-route.get('/contacts-profile', (req, res, next) => {
-    res.render('contacts-profile', { title: 'Profile'});
-})
+
+
+
 
 // Auth Pages
 route.get('/auth-login', (req, res, next) => {

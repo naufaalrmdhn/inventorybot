@@ -15,9 +15,9 @@
             <div class="col-md-8 col-lg-6 col-xl-4">
                 <div class="text-center">
                     <a href="index">
-                        <img src="/images/logo-dark.png" alt="" height="22" class="mx-auto">
+                        <img src="/images/idch.png" alt="" height="42" class="mx-auto">
                     </a>
-                    <p class="text-muted mt-2 mb-4">Responsive Admin Dashboard</p>
+                    <p class="text-muted mt-2 mb-4">Manajemen Inventaris IDCloudHost</p>
                 </div>
                 <div class="card">
 
@@ -27,22 +27,22 @@
                             <h4 class="text-uppercase mt-0">Register</h4>
                         </div>
 
-                        <form class="form needs-validation" novalidate action="index">
+                        <form class="form needs-validation" novalidate action="/auth-register" method="post">
                             <div id="error" class="text-danger"></div>
-
+                            
                             <div class="mb-3">
-                                <label for="fullname" class="form-label">Full Name</label>
-                                <input class="form-control" type="text" id="fullname" placeholder="Enter your name"
+                                <label for="username" class="form-label"> username </label>
+                                <input class="form-control" type="text" id="username" name="username" placeholder="Enter your name"
                                        required>
                             </div>
                             <div class="mb-3">
                                 <label for="emailaddress" class="form-label">Email address</label>
-                                <input class="form-control" type="email" id="emailaddress" required
+                                <input class="form-control"  type="email" id="email" name="email" required
                                        placeholder="Enter your email">
                             </div>
                             <div class="mb-3">
                                 <label for="password" class="form-label">Password</label>
-                                <input class="form-control" type="password" required id="password"
+                                <input class="form-control" type="password" name="password" required id="password"
                                        placeholder="Enter your password">
                             </div>
                             <div class="mb-3">
@@ -65,7 +65,7 @@
 
                 <div class="row mt-3">
                     <div class="col-12 text-center">
-                        <p class="text-muted">Already have account? <a href="auth-login"
+                        <p class="text-dark">Already have account? <a href="auth-login"
                                                                        class="text-dark ms-1"><b>Sign In</b></a></p>
                     </div> <!-- end col -->
                 </div>
@@ -80,25 +80,47 @@
 <!-- end page -->
 
 <%- include ('../partials/vendor') %>
-
 <script>
-    document.querySelector('.form').addEventListener('submit', () => {
-        event.preventDefault();
+    document.getElementById("registerForm").addEventListener("submit", function(event) {
+        event.preventDefault(); // Prevent default form submission
 
-        let ue = document.getElementById('emailaddress').value;
-        let un = document.getElementById('fullname').value;
-        let pass = document.getElementById('password').value;
-        if (ue != '' && un != '' && pass != '') {
-            if (localStorage.getItem('User')) {
-                localStorage.removeItem('User')
+        let username = document.getElementById("username").value;
+        let email = document.getElementById("email").value;
+        let password = document.getElementById("password").value;
+
+        const data = {
+            username: username,
+            email: email,
+            password: password
+        };
+
+        fetch('/auth-register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.message); });
             }
-            localStorage.setItem('User', ue)
-            window.location.href = "/";
-        } else {
-            document.getElementById("error").innerHTML =
-                "*Please Enter Name or Email or Password";
-        }
-    })
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                document.getElementById("error").innerHTML = ""; // Clear any previous errors
+                alert("Registration successful! You can now log in.");
+                window.location.href = "/login"; // Redirect to login page after successful registration
+            } else {
+                document.getElementById("error").innerHTML = "* " + data.message;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById("error").innerHTML = "* Error registering user";
+        });
+    });
 </script>
 <!-- App js -->
 <script src="/js/app.min.js"></script>

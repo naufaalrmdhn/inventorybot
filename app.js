@@ -11,6 +11,7 @@ const bodyParser = require('body-parser');
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const bcrypt = require('bcrypt');
+const salt = bcrypt.genSaltSync();
 dotenv.config({ path: "./config.env" });
 
 
@@ -29,7 +30,10 @@ const bot = new TelegramBot(token, { polling: true });
 app.use(express.json());
 app.use(session({ resave: false, saveUninitialized: true, secret: 'nodedemo' }));
 app.use(cookieParser());
-
+app.use((req, res, next) => {
+    res.locals.user = req.session.username || null;
+    next();
+});
 app.set('layout', 'partials/layout-vertical');
 app.use(expressLayouts);
 
@@ -42,6 +46,7 @@ app.use('/', reportRouter);
 
 
 const pool = require('./database')// Sesuaikan path jika diperlukan
+const db = require('./database')// Sesuaikan path jika diperlukan
 // Konfigurasi session
 app.use(session({
     secret: 'secret-key',
@@ -49,6 +54,54 @@ app.use(session({
     saveUninitialized: true
 }));
 
+
+
+// Routes
+const dashboardRoute = require('./routes/dashboard');
+app.use('/', dashboardRoute);
+
+const profileRoute = require('./routes/profile');
+app.use('/', profileRoute);
+
+
+app.post('/auth-register', (req, res) => {
+    const { username, email, password } = req.body;
+
+    console.log('Received data:', { username, email, password }); // Log data yang diterima
+
+    // Periksa apakah username atau email sudah ada di database
+    let sql = 'SELECT * FROM users WHERE username = ? OR email = ?';
+    pool.query(sql, [username, email], (err, results) => {
+        if (err) {
+            console.error('Error querying user:', err);
+            return res.status(500).send('Error registering user');
+        }
+
+        if (results.length) {
+            // Username atau email sudah ada
+            return res.status(400).json({ success: false, message: 'Username or email already exists' });
+        } else {
+            // Hash password menggunakan bcrypt.hashSync
+            try {
+                console.log('Hashing password:', password); // Log password sebelum hashing
+                const hashedPassword = bcrypt.hashSync(password, 10);
+                console.log('Hashed password:', hashedPassword); // Log password setelah hashing
+
+                let insertSql = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)';
+                pool.query(insertSql, [username, email, hashedPassword], (err, result) => {
+                    if (err) {
+                        console.error('Error inserting user:', err);
+                        return res.status(500).send('Error registering user');
+                    }
+                    return res.redirect('/auth-login');
+                });
+            } catch (hashError) {
+                console.error('Error hashing password:', hashError);
+                return res.status(500).send('Error registering user');
+            }
+        }
+    });
+});
 // Route untuk handle POST request dari form login
 app.post('/auth-login', (req, res) => {
     const { username, password } = req.body;
@@ -279,7 +332,7 @@ bot.on('message', (msg) => {
             const images = user.images;
 
             // Insert transaction into database with user information
-            const query = 'INSERT INTO transactions (type, id_barang, jumlah, deskripsi_barang, keterangan, username) VALUES (?, ?, ?, ?, ?, ?)';
+            const query = 'INSERT INTO transactions (type, id_barang, jumlah, deskripsi, keterangan, username) VALUES (?, ?, ?, ?, ?, ?)';
             db.query(query, [type, user.itemId, quantity, description, keterangan, user.username], (err, result) => {
                 if (err) {
                     console.error('Error executing query:', err);
