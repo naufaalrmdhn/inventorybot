@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../database'); // Sesuaikan path jika diperlukan
-
+const bcrypt = require('bcrypt');
 
 function requireLogin(req, res, next) {
     if (!req.session.userId) {
@@ -32,34 +32,41 @@ router.get('/contacts-profile', requireLogin, (req, res) => {
     });
 });
 
-router.post('/profile', requireLogin, (req, res) => {
+// Route untuk memperbarui profil
+router.post('/profile', requireLogin, async (req, res) => {
     const { username, email, password } = req.body;
     const currentUsername = req.session.username;
 
-    let sql = 'UPDATE users SET username = ?, email = ?';
-    const params = [username, email];
+    try {
+        let sql = 'UPDATE users SET username = ?, email = ?';
+        const params = [username, email];
 
-    if (password) {
-        sql += ', password = ?';
-        params.push(password);
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            sql += ', password = ?';
+            params.push(hashedPassword);
+        }
+
+        sql += ' WHERE username = ?';
+        params.push(currentUsername);
+
+        db.query(sql, params, (err, results) => {
+            if (err) {
+                console.error('Error updating user profile:', err);
+                return res.status(500).send('Error updating user profile');
+            }
+
+            // Update session with new username if it has changed
+            if (username !== currentUsername) {
+                req.session.username = username;
+            }
+
+            res.redirect('/contacts-profile');
+        });
+    } catch (error) {
+        console.error('Error hashing password:', error);
+        return res.status(500).send('Error updating user profile');
     }
-
-    sql += ' WHERE username = ?';
-    params.push(currentUsername);
-
-    db.query(sql, params, (err, results) => {
-        if (err) {
-            console.error('Error updating user profile:', err);
-            return res.status(500).send('Error updating user profile');
-        }
-
-        // Update session with new username if it has changed
-        if (username !== currentUsername) {
-            req.session.username = username;
-        }
-
-        res.redirect('/contacts-profile');
-    });
 });
 
 module.exports = router
