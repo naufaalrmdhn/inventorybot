@@ -153,8 +153,8 @@ bot.onText(/\/start/, (msg) => {
     bot.sendMessage(chatId, "Hallo! Pilih Tipe Transaksi Barang:", {
         reply_markup: {
             inline_keyboard: [
-                [{ text: 'Masuk(in)', callback_data: 'in' }],
-                [{ text: 'Keluar(out)', callback_data: 'out' }]
+                [{ text: 'Masuk (in)', callback_data: 'in' }],
+                [{ text: 'Keluar (out)', callback_data: 'out' }]
             ]
         }
     });
@@ -165,25 +165,24 @@ bot.onText(/\/start/, (msg) => {
 bot.on('callback_query', (callbackQuery) => {
     const msg = callbackQuery.message;
     const chatId = msg.chat.id;
-    const type = callbackQuery.data;
+    const data = callbackQuery.data;
 
     if (!users[chatId]) return;
 
     const user = users[chatId];
 
     if (user.step === 'chooseType') {
-        user.type = type;
+        user.type = data;
         user.step = 'chooseCategory';
 
-        // Retrieve categories from database
         db.query('SELECT DISTINCT kategori FROM barang', (err, results) => {
             if (err) {
                 console.error('Error executing query:', err);
                 return;
             }
 
-            let categories = results.map(row => ({ text: row.kategori, callback_data: `category_${row.kategori}` }));
-            categories.push({ text: 'Tambah Kategori Baru', callback_data: 'add_new_category' });
+            const categories = results.map(row => ({ text: row.kategori, callback_data: `category_${row.kategori}` }));
+            categories.push({ text: 'Tambah Kategori Baru', callback_data: 'category_new' });
 
             const options = {
                 reply_markup: {
@@ -196,26 +195,27 @@ bot.on('callback_query', (callbackQuery) => {
             });
         });
     } else if (user.step === 'chooseCategory') {
-        if (callbackQuery.data === 'add_new_category') {
-            user.step = 'addNewCategory';
-            bot.sendMessage(chatId, "Masukkan nama kategori baru:");
+        if (data === 'category_new') {
+            user.step = 'enterNewCategory';
+            bot.sendMessage(chatId, "Silahkan ketik kategori baru:");
         } else {
-            const category = callbackQuery.data.split('_')[1];
+            const category = data.split('_')[1];
             user.category = category;
             user.step = 'chooseItem';
 
-            // Retrieve items based on category
             db.query('SELECT id_barang, deskripsi FROM barang WHERE kategori = ?', [category], (err, results) => {
                 if (err) {
                     console.error('Error executing query:', err);
                     return;
                 }
 
-                let items = results.map(row => ({ text: row.deskripsi, callback_data: `item_${row.id_barang}` }));
-                if (items.length === 0) {
-                    items.push({ text: 'Tidak ada barang tersedia', callback_data: 'no_item' });
+                if (results.length === 0) {
+                    bot.sendMessage(chatId, `Tidak ada item yang tersedia pada kategori ini (${category}). Silahkan pilih kategori lain atau tambahkan item baru.`);
+                    return;
                 }
-                items.push({ text: 'Tambah Barang Baru', callback_data: 'add_new_item' });
+
+                const items = results.map(row => ({ text: row.deskripsi, callback_data: `item_${row.id_barang}` }));
+                items.push({ text: 'Tambah Barang Baru', callback_data: 'item_new' });
 
                 const options = {
                     reply_markup: {
@@ -223,40 +223,34 @@ bot.on('callback_query', (callbackQuery) => {
                     }
                 };
 
-                bot.sendMessage(chatId, `Kamu memilih kategori ${category}. Silahkan pilih item yang tersedia atau tambahkan barang baru:`, options);
+                bot.sendMessage(chatId, `Kamu memilih kategori ${category}. Silahkan pilih item yang tersedia:`, options);
             });
         }
     } else if (user.step === 'chooseItem') {
-        if (callbackQuery.data === 'add_new_item') {
-            user.step = 'addNewItem';
-            bot.sendMessage(chatId, "Masukkan deskripsi barang baru:");
-        } else if (callbackQuery.data === 'no_item') {
-            bot.sendMessage(chatId, "Kategori ini tidak memiliki barang. Silahkan tambahkan barang baru.");
+        if (data === 'item_new') {
+            user.step = 'enterNewItem';
+            bot.sendMessage(chatId, "Silahkan ketik deskripsi barang baru:");
         } else {
-            const itemId = callbackQuery.data.split('_')[1];
+            const itemId = data.split('_')[1];
             user.itemId = itemId;
 
-            db.query('SELECT deskripsi, jumlah, merk FROM barang WHERE id_barang = ?', [itemId], (err, results) => {
+            db.query('SELECT deskripsi, jumlah, kategori FROM barang WHERE id_barang = ?', [itemId], (err, results) => {
                 if (err) {
                     console.error('Error executing query:', err);
                     return;
                 }
 
-                const quantity = results[0].jumlah;
-                const description = results[0].deskripsi;
-                const merk = results[0].merk;
+                const item = results[0];
+                const quantity = item.jumlah;
+                const description = item.deskripsi;
+                const category = item.kategori;
 
-                user.description = description;
-                user.merk = merk;
+                user.step = 'enterQuantity';
                 user.availableQuantity = quantity;
+                user.category = category; // store category for serial number check
 
-                if (user.type === 'out' && quantity <= 0) {
-                    bot.sendMessage(chatId, `Item yang dipilih tidak tersedia. Pilih item yang lain.`);
-                    return;
-                }
-
-                user.step = 'enterInfoLain';
-                bot.sendMessage(chatId, 'Masukkan info lain (contoh: serial number, jika tidak ada beri tanda -):');
+                const formattedMessage = `Kamu memilih item: *${description}*\n\nSilahkan pilih jumlah dan keterangan lokasi & tujuan\nContoh: 10, fasri ke basecamp`;
+                bot.sendMessage(chatId, formattedMessage, { parse_mode: 'Markdown' });
             });
         }
     }
@@ -269,80 +263,55 @@ bot.on('message', (msg) => {
 
     const user = users[chatId];
 
-    if (user.step === 'addNewCategory') {
+    if (user.step === 'enterNewCategory') {
         const newCategory = msg.text.trim();
-        user.newCategory = newCategory;
-        user.step = 'addNewItem';
-        bot.sendMessage(chatId, `Kategori baru "${newCategory}" telah ditambahkan. Masukkan deskripsi barang baru:`);
-    } else if (user.step === 'addNewItem') {
+        user.category = newCategory;
+        user.step = 'enterNewItem';
+        bot.sendMessage(chatId, "Silahkan ketik deskripsi barang baru:");
+    } else if (user.step === 'enterNewItem') {
         const newItemDescription = msg.text.trim();
         user.newItemDescription = newItemDescription;
-        user.step = 'addNewItemBrand';
-        bot.sendMessage(chatId, "Masukkan merk barang baru:");
-    } else if (user.step === 'addNewItemBrand') {
-        const newItemBrand = msg.text.trim();
-        user.newItemBrand = newItemBrand;
+        user.step = 'enterNewItemMerk';
+        bot.sendMessage(chatId, "Silahkan ketik merk barang baru:");
+    } else if (user.step === 'enterNewItemMerk') {
+        const newItemMerk = msg.text.trim();
+        user.newItemMerk = newItemMerk;
 
-        // Make sure both description and brand are not empty
-        if (!user.newItemDescription || !user.newItemBrand) {
-            bot.sendMessage(chatId, "Deskripsi dan merk tidak boleh kosong. Silahkan masukkan kembali deskripsi barang baru:");
-            user.step = 'addNewItem';
-        } else {
-            user.step = 'enterInfoLain';
-            bot.sendMessage(chatId, "Masukkan info lain (contoh: serial number, jika tidak ada beri tanda -):");
-        }
-    } else if (user.step === 'enterInfoLain') {
-        const infoLain = msg.text.trim();
-        user.infoLain = infoLain;
-
-        if (user.itemId) {
-            user.step = 'enterQuantity';
-            bot.sendMessage(chatId, 'Silahkan masukkan jumlah dan keterangan lokasi & tujuan\nContoh: 10, faasri ke basecamp');
-        } else {
-            const category = user.newCategory;
-            const newItemDescription = user.newItemDescription;
-            const newItemBrand = user.newItemBrand;
-
-            // Make sure both description and brand are not empty
-            if (!newItemDescription || !newItemBrand) {
-                bot.sendMessage(chatId, "Deskripsi dan merk tidak boleh kosong. Silahkan masukkan kembali deskripsi barang baru:");
-                user.step = 'addNewItem';
+        db.query('INSERT INTO barang (deskripsi, kategori, merk, jumlah) VALUES (?, ?, ?, 0)', [user.newItemDescription, user.category, newItemMerk], (err, result) => {
+            if (err) {
+                console.error('Error inserting new item:', err);
+                bot.sendMessage(chatId, "Terjadi kesalahan saat menambahkan barang baru. Silahkan coba lagi.");
                 return;
             }
 
-            db.query('INSERT INTO barang (deskripsi, kategori, merk, jumlah) VALUES (?, ?, ?, 0)', [newItemDescription, category, newItemBrand], (err, result) => {
-                if (err) {
-                    console.error('Error adding new item:', err);
-                    return;
-                }
-
-                const newItemId = result.insertId;
-                user.itemId = newItemId;
-                user.description = newItemDescription;
-                user.merk = newItemBrand;
-                user.step = 'enterQuantity';
-
-                bot.sendMessage(chatId, `Barang baru "${newItemDescription}" dengan merk "${newItemBrand}" telah ditambahkan. Silahkan masukkan jumlah dan keterangan lokasi & tujuan\nContoh: 10, faasri ke basecamp`);
-            });
-        }
+            user.itemId = result.insertId;
+            user.step = 'enterQuantity';
+            bot.sendMessage(chatId, "Barang baru berhasil ditambahkan. Silahkan pilih jumlah dan keterangan lokasi & tujuan\nContoh: 10, fasri ke basecamp");
+        });
     } else if (user.step === 'enterQuantity') {
         const [quantity, keterangan] = msg.text.split(',').map(s => s.trim());
         const type = user.type;
-
         const parsedQuantity = parseInt(quantity);
 
         if (parsedQuantity === 0 || isNaN(parsedQuantity)) {
-            bot.sendMessage(chatId, 'Invalid quantity. Please enter a valid quantity.');
+            bot.sendMessage(chatId, 'Jumlah tidak valid. Silahkan masukkan jumlah yang valid.');
             return;
         }
 
         if (type === 'out' && parsedQuantity > user.availableQuantity) {
-            bot.sendMessage(chatId, `Insufficient quantity available. You can only remove up to ${user.availableQuantity}.`);
+            bot.sendMessage(chatId, `Jumlah tidak mencukupi. Anda hanya bisa mengeluarkan hingga ${user.availableQuantity}.`);
             return;
         }
 
         user.quantity = parsedQuantity;
         user.keterangan = keterangan;
+        user.step = 'enterAdditionalInfo';
+
+        const additionalInfoPrompt = `Apakah barang memiliki serial number atau informasi lain? Jika ada, masukkan informasinya. Jika tidak, ketik tanda "-".`;
+        bot.sendMessage(chatId, additionalInfoPrompt);
+    } else if (user.step === 'enterAdditionalInfo') {
+        const additionalInfo = msg.text.trim();
+        user.additionalInfo = additionalInfo;
 
         db.query('SELECT deskripsi, merk FROM barang WHERE id_barang = ?', [user.itemId], (err, results) => {
             if (err) {
@@ -353,33 +322,30 @@ bot.on('message', (msg) => {
             const description = results[0].deskripsi;
             const merk = results[0].merk;
 
-            const query = 'INSERT INTO transactions (type, jumlah, deskripsi_barang, keterangan, username, info_lain, id_barang) VALUES (?, ?, ?, ?, ?, ?, ?)';
-            const values = [type, parsedQuantity, description, keterangan, user.username, user.infoLain, user.itemId];
-
-            db.query(query, values, (err) => {
+            const query = 'INSERT INTO transactions (type, id_barang, jumlah, deskripsi_barang, keterangan, username, info_lain) VALUES (?, ?, ?, ?, ?, ?, ?)';
+            db.query(query, [user.type, user.itemId, user.quantity, description, user.keterangan, user.username, user.additionalInfo], (err) => {
                 if (err) {
                     console.error('Error inserting transaction:', err);
                     return;
                 }
 
-                const updateQuery = type === 'in' ? 'UPDATE barang SET jumlah = jumlah + ? WHERE id_barang = ?' : 'UPDATE barang SET jumlah = jumlah - ? WHERE id_barang = ?';
-
-                db.query(updateQuery, [parsedQuantity, user.itemId], (err) => {
+                const updateQuery = 'UPDATE barang SET jumlah = jumlah + ? WHERE id_barang = ?';
+                const jumlahChange = user.type === 'in' ? user.quantity : -user.quantity;
+                db.query(updateQuery, [jumlahChange, user.itemId], (err) => {
                     if (err) {
-                        console.error('Error updating item quantity:', err);
+                        console.error('Error updating barang quantity:', err);
                         return;
                     }
 
-                    const typeEmoji = type === 'out' ? '🟥' : '🟩';
-                    const formattedMessage = `Transaksi Tersimpan!\n\nType: ${typeEmoji} *${type}* ${typeEmoji}\nQuantity: *${parsedQuantity}*\nDescription: *${description}*\nMerk: *${merk}*\nInfo Lain: *${user.infoLain}*\nLokasi & Tujuan barang: *${keterangan}*\n\nDi input oleh: *${user.username}*`;
+                    const typeEmoji = user.type === 'out' ? '🟥' : '🟩';
+                    const formattedMessage = `Transaksi Tersimpan!\n\nType: ${typeEmoji} *${user.type}* ${typeEmoji}\nQuantity: *${user.quantity}*\nDescription: *${description}*\nMerk: *${merk}*\nInfo Lain: *${user.additionalInfo}*\nLokasi & Tujuan barang: *${user.keterangan}*\n\nDi input oleh: *${user.username}*`;
                     bot.sendMessage(chatId, formattedMessage, { parse_mode: 'Markdown' });
-                    delete users[chatId];
+                    delete users[chatId]; // Clear user data after transaction
                 });
             });
         });
     }
 });
-
 
   
 //bot
