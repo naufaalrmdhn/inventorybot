@@ -6,20 +6,14 @@ const upload = multer({ dest: 'uploads/' });
 
 
 // Tambahkan rute untuk halaman transaksi
-route.get('/', (req, res) => {
-    const itemsPerPage = parseInt(req.query.itemsPerPage) || 10; // Jumlah item per halaman, default 10
-    const page = parseInt(req.query.page) || 1; // Halaman saat ini, default halaman 1
-    const offset = (page - 1) * itemsPerPage;
+route.get('/', (req, res, next) => {
     const filterType = req.query.filterType || ''; // Filter type (in/out), default empty string (no filter)
     const filterDate = req.query.filterDate || ''; // Filter date, default empty string (no filter)
-    const filterMonth = req.query.filterMonth || ''; // Filter month, default empty string (no filter)
 
-    let countQuery = 'SELECT COUNT(*) AS total FROM transactions';
     let dataQuery = `
         SELECT transactions.*, barang.kategori, barang.deskripsi 
         FROM transactions 
         JOIN barang ON transactions.id_barang = barang.id_barang
-        ORDER BY transactions.created_at DESC
     `;
 
     let queryParams = [];
@@ -37,68 +31,50 @@ route.get('/', (req, res) => {
         queryParams.push(filterDate);
     }
 
-    // Apply filter month if provided
-    if (filterMonth) {
-        conditions.push('MONTH(transactions.created_at) = ?');
-        queryParams.push(filterMonth);
-    }
-
     // Combine conditions to the query
     if (conditions.length > 0) {
         const whereClause = ' WHERE ' + conditions.join(' AND ');
-        countQuery += whereClause;
         dataQuery += whereClause;
     }
 
-    dataQuery += ' LIMIT ? OFFSET ?';
-    queryParams.push(itemsPerPage, offset);
+    dataQuery += ' ORDER BY transactions.created_at DESC';
 
-    // Query untuk mendapatkan total transaksi
-    db.query(countQuery, queryParams.slice(0, queryParams.length - 2), (err, countResult) => {
+    db.query(dataQuery, queryParams, (err, transactions) => {
         if (err) {
             return res.status(500).send(err.message);
         }
 
-        const totalItems = countResult[0].total;
-        const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-        // Query untuk mendapatkan transaksi dengan limit dan offset
-        db.query(dataQuery, queryParams, (err, transactions) => {
-            if (err) {
-                return res.status(500).send(err.message);
-            }
-
-            // Mendapatkan gambar untuk setiap transaksi
-            const transactionWithImages = transactions.map(transaction => {
-                return new Promise((resolve, reject) => {
-                    db.query(`SELECT file_id FROM images WHERE transaction_id = ?`, [transaction.id], (imageErr, imageResults) => {
-                        if (imageErr) {
-                            return reject(imageErr);
-                        }
-                        transaction.images = imageResults;
-                        resolve(transaction);
-                    });
+        // Mendapatkan gambar untuk setiap transaksi
+        const transactionWithImages = transactions.map(transaction => {
+            return new Promise((resolve, reject) => {
+                db.query(`SELECT file_id FROM images WHERE transaction_id = ?`, [transaction.id], (imageErr, imageResults) => {
+                    if (imageErr) {
+                        return reject(imageErr);
+                    }
+                    transaction.images = imageResults;
+                    resolve(transaction);
                 });
             });
+        });
 
-            Promise.all(transactionWithImages).then(finalTransactions => {
-                res.render('transaksi', { 
-                    title: 'List Transaksi', 
-                    page_title: 'transaksi', 
-                    transactions: finalTransactions,
-                    itemsPerPage: itemsPerPage,
-                    currentPage: page,
-                    totalPages: totalPages,
-                    filterType: filterType,
-                    filterDate: filterDate,
-                    filterMonth: filterMonth
-                });
-            }).catch(error => {
-                return res.status(500).send(error.message);
+        Promise.all(transactionWithImages).then(finalTransactions => {
+            res.render('transaksi', { 
+                title: 'List Transaksi', 
+                page_title: 'transaksi', 
+                transactions: finalTransactions,
+                filterType: filterType,
+                filterDate: filterDate
             });
+        }).catch(error => {
+            return res.status(500).send(error.message);
         });
     });
 });
+
+
+
+
+
 
 
 // Create a new transaction

@@ -9,7 +9,7 @@ route.use('/report', report);
 
 // Route untuk menampilkan halaman barang
 route.get('/barang', (req, res, next) => {
-    db.query(`SELECT * FROM barang`, (err, results) => {
+    db.query(`SELECT * FROM barang ORDER BY id_barang DESC`, (err, results) => {
         if (err) {
             return res.status(500).send(err.message);
         }
@@ -45,6 +45,7 @@ route.get('/barang', (req, res, next) => {
         });
     });
 });
+
 
 
 //transaksi rute

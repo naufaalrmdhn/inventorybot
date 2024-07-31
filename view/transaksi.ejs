@@ -104,14 +104,28 @@
                    <form class="row g-3">
                     
                     <div class="col-xl-2 col-md-3">
-                        <button type="button"  class="btn btn-primary mb-3 d-print-none" data-bs-toggle="modal" data-bs-target="#addTransaksiModal">
+                     <!--   <button type="button"  class="btn btn-primary mb-3 d-print-none" data-bs-toggle="modal" data-bs-target="#addTransaksiModal">
                             Tambah Transaksi Baru
                         </button>
+                    -->
                 
                    
                     </form>
 
-                
+                <!-- Filter Form -->
+    <form method="get" action="/transaksi">
+        <label for="filterType">Filter Type:</label>
+        <select name="filterType" id="filterType">
+            <option value="" <% if (!filterType) { %>selected<% } %>>All</option>
+            <option value="in" <% if (filterType === 'in') { %>selected<% } %>>In</option>
+            <option value="out" <% if (filterType === 'out') { %>selected<% } %>>Out</option>
+        </select>
+
+        <label for="filterDate">Filter Date:</label>
+        <input type="date" name="filterDate" id="filterDate" value="<%= filterDate %>">
+
+        <button type="submit">Filter</button>
+    </form>
     <!-- Modal untuk menambah transaksi baru -->
     <div class="modal fade" id="addTransaksiModal" tabindex="-1" aria-labelledby="addTransaksiModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -158,21 +172,7 @@
             </div>
         </div>
     </div>
-    <form id="filterForm" method="GET" action="/transaksi">
-       
-       
-
-        <label for="filterType">Filter by type:</label>
-        <select id="filterType" name="filterType" onchange="document.getElementById('filterForm').submit()">
-            <option value="" <%= !filterType ? 'selected' : '' %>>All</option>
-            <option value="in" <%= filterType === 'in' ? 'selected' : '' %>>Masuk</option>
-            <option value="out" <%= filterType === 'out' ? 'selected' : '' %>>Keluar</option>
-        </select>
-
-        <label for="filterDate">Filter by date:</label>
-        <input type="date" id="filterDate" name="filterDate" value="<%= filterDate %>" onchange="document.getElementById('filterForm').submit()">
-
-    </form>
+    
 
 
             <table id="responsive-datatable"  class="tablesaw table mb-0 display" data-tablesaw-mode="stack">
@@ -209,35 +209,11 @@
                                 <td><%= transaction.keterangan %></td>
                                 <td><%= formatDate(transaction.created_at) %></td>
                                 <td><%= transaction.username %></td>
-                                <td class="d-print-none">
+                                <td>
                                     <% if (transaction.images && transaction.images.length > 0) { %>
-                                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#imageModal<%= transaction.id %>">
-                                            View Images
-                                        </button>
-                
-                                        <!-- Modal for viewing images -->
-                                        <div class="modal fade" id="imageModal<%= transaction.id %>" tabindex="-1" aria-labelledby="imageModalLabel<%= transaction.id %>" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="imageModalLabel<%= transaction.id %>">Images</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="row">
-                                                            <% transaction.images.forEach(image => { %>
-                                                                <div class="col-6 col-md-4 mb-3">
-                                                                    <img src="/get-image/<%= image.file_id %>" class="img-fluid" alt="Image <%= image.file_id %>">
-                                                                </div>
-                                                            <% }) %>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <% transaction.images.forEach(image => { %>
+                                            <img src="/get-image/<%= image.file_id %>" alt="Image" style="max-width: 100px;">
+                                        <% }) %>
                                     <% } else { %>
                                         No images
                                     <% } %>
@@ -353,6 +329,7 @@
                 "pageLength": 10,
                 "lengthMenu": [10, 25, 50, 100],
                 "dom": '<"top"lf>rt<"bottom"ip><"clear">',
+                "order": [[ 0, "desc" ]], // Assumes the first column is the date column. Adjust index as needed.
                 "language": {
                     "search": "",
                     "lengthMenu": "Show _MENU_ entries",

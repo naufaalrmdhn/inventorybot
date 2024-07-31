@@ -79,19 +79,29 @@
                             </div>
                             <form action="/barang" method="post">
                             <div class="modal-body">
-                              <div class="mb-3">
-                                <label for="id" class="form-label">ID Barang</label>
-        <input type="text" class="form-control" id="id" name="id_display" disabled>
-        <input type="hidden" name="id_barang" id="id_barang">
-                              </div>
+                                <div class="mb-3">
+                                    <label for="kategori">Kategori:</label>
+                                    <select id="kategori" name="kategori" required>
+                                        <option value="" disabled selected>Pilih kategori</option>
+                                        <% categories.forEach(category => { %>
+                                            <option value="<%= category %>"><%= category %></option>
+                                        <% }); %>
+                                        <option value="add-new">Tambah kategori baru</option>
+                                    </select>
+                                </div>
+                                <div id="new-category-form" style="display:none;">
+                                    <label for="new-kategori">Kategori Baru:</label>
+                                    <input type="text" id="new-kategori" name="new-kategori">
+                                    <button type="button" id="save-category">Simpan Kategori</button>
+                                </div>
+                               <!-- <div class="mb-3">
+                                    <label for="kategori" class="form-label">Kategori Baru : (Jika Kategori tidak ada pada list diatas)</label>
+                                    <input type="text" class="form-control" id="kategori" name="kategori" placeholder="Input ini untuk kategori baru! Kosongkan jika kategori sudah ada">
+                                </div> -->
                                 <div class="mb-3">
                                 <label for="merk" class="form-label">Merk</label>
                                 <input type="text" class="form-control" id="merk" name="merk" required>
-                                </div>
-                                <div class="mb-3">
-                                <label for="kategori" class="form-label">Kategori</label>
-                                <input type="text" class="form-control" id="kategori" name="kategori" required>
-                                </div>
+                                </div>                                                            
                                 <div class="mb-3">
                                 <label for="deskripsi" class="form-label">Deskripsi</label>
                                 <input type="text" class="form-control" id="deskripsi" name="deskripsi" required>
@@ -100,11 +110,8 @@
                                 <label for="jumlah" class="form-label">Jumlah</label>
                                 <input type="number" class="form-control" id="jumlah" name="jumlah" required>
                                 </div>
-                                <div class="mb-3">
-                                  <label for="sn" class="form-label">SN</label>
-                                  <input type="text" class="form-control" id="sn" name="sn" required>
-                                  </div>
-                            </div>
+                                
+                                </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                                 <button type="submit" class="btn btn-primary">Tambah</button>
@@ -112,6 +119,29 @@
                             </form>
                             
 <script>
+    document.getElementById('kategori').addEventListener('change', function() {
+        const selectedValue = this.value;
+        if (selectedValue === 'add-new') {
+            document.getElementById('new-category-form').style.display = 'block';
+            document.getElementById('kategori').value = ''; // Clear selection
+        } else {
+            document.getElementById('new-category-form').style.display = 'none';
+        }
+    });
+
+    document.getElementById('save-category').addEventListener('click', function() {
+        const newCategory = document.getElementById('new-kategori').value;
+        if (newCategory) {
+            const select = document.getElementById('kategori');
+            const option = document.createElement('option');
+            option.value = newCategory;
+            option.textContent = newCategory;
+            select.appendChild(option);
+            select.value = newCategory;
+            document.getElementById('new-category-form').style.display = 'none';
+            document.getElementById('new-kategori').value = '';
+        }
+    });
   // Tangkap input kategori
   const inputKategori = document.getElementById('kategori');
   // Tangkap input id_barang yang ditampilkan
@@ -190,7 +220,7 @@
                         <th>Merk</th>
                         <th>Deskripsi</th>
                         <th>Jumlah</th>
-                        <th>SN</th>
+                        
                         <th>Aksi</th>
                       </tr>
                     </thead>
@@ -202,7 +232,7 @@
                           <td><%= item.merk %></td>
                           <td><%= item.deskripsi %></td>
                           <center><td><%= item.jumlah %></td></center>
-                          <td><%= item.sn %></td>
+                          
                           <td>
                             <button type="button" class="btn btn-success" onclick="openUpdateModal('<%= item.id_barang %>', '<%= item.merk %>', '<%= item.kategori %>', '<%= item.deskripsi %>', '<%= item.jumlah %>', '<%= item.sn %>')">Update</button>
                             <form action="/barang/delete/<%= item.id_barang %>" method="POST" style="display: inline;">

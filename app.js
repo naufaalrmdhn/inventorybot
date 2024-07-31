@@ -312,40 +312,79 @@ bot.on('message', (msg) => {
     } else if (user.step === 'enterAdditionalInfo') {
         const additionalInfo = msg.text.trim();
         user.additionalInfo = additionalInfo;
-
-        db.query('SELECT deskripsi, merk FROM barang WHERE id_barang = ?', [user.itemId], (err, results) => {
-            if (err) {
-                console.error('Error executing query:', err);
-                return;
+        user.step = 'uploadImages';
+        bot.sendMessage(chatId, 'Silahkan unggah gambar barang (kirim hingga 3 gambar) atau ketik "done" untuk selesai:');
+    } else if (user.step === 'uploadImages') {
+        if (msg.photo) {
+            if (!user.images) {
+                user.images = [];
             }
 
-            const description = results[0].deskripsi;
-            const merk = results[0].merk;
+            user.images.push(msg.photo[msg.photo.length - 1].file_id); // Save the file_id of the highest resolution photo
 
-            const query = 'INSERT INTO transactions (type, id_barang, jumlah, deskripsi_barang, keterangan, username, info_lain) VALUES (?, ?, ?, ?, ?, ?, ?)';
-            db.query(query, [user.type, user.itemId, user.quantity, description, user.keterangan, user.username, user.additionalInfo], (err) => {
+            if (user.images.length < 3) {
+                bot.sendMessage(chatId, 'Anda dapat mengirim lebih banyak gambar, atau ketik "done" untuk selesai:');
+            } else {
+                bot.sendMessage(chatId, 'Anda telah mengunggah jumlah gambar maksimum. Ketik "done" untuk selesai:');
+            }
+        } else if (msg.text.toLowerCase() === 'done') {
+            const type = user.type;
+            const quantity = user.quantity;
+            const keterangan = user.keterangan;
+            const images = user.images;
+
+            db.query('SELECT deskripsi, merk FROM barang WHERE id_barang = ?', [user.itemId], (err, results) => {
                 if (err) {
-                    console.error('Error inserting transaction:', err);
+                    console.error('Error executing query:', err);
                     return;
                 }
 
-                const updateQuery = 'UPDATE barang SET jumlah = jumlah + ? WHERE id_barang = ?';
-                const jumlahChange = user.type === 'in' ? user.quantity : -user.quantity;
-                db.query(updateQuery, [jumlahChange, user.itemId], (err) => {
+                const description = results[0].deskripsi;
+                const merk = results[0].merk;
+
+                const query = 'INSERT INTO transactions (type, id_barang, jumlah, deskripsi_barang, keterangan, username, info_lain) VALUES (?, ?, ?, ?, ?, ?, ?)';
+                db.query(query, [type, user.itemId, quantity, description, keterangan, user.username, user.additionalInfo], (err, result) => {
                     if (err) {
-                        console.error('Error updating barang quantity:', err);
+                        console.error('Error inserting transaction:', err);
                         return;
                     }
 
-                    const typeEmoji = user.type === 'out' ? '🟥' : '🟩';
-                    const formattedMessage = `Transaksi Tersimpan!\n\nType: ${typeEmoji} *${user.type}* ${typeEmoji}\nQuantity: *${user.quantity}*\nDescription: *${description}*\nMerk: *${merk}*\nInfo Lain: *${user.additionalInfo}*\nLokasi & Tujuan barang: *${user.keterangan}*\n\nDi input oleh: *${user.username}*`;
-                    bot.sendMessage(chatId, formattedMessage, { parse_mode: 'Markdown' });
-                    delete users[chatId]; // Clear user data after transaction
+                    const transactionId = result.insertId; // Get the inserted transaction ID
+
+                    // Insert images into the images table
+                    if (images && images.length > 0) {
+                        const imageQuery = 'INSERT INTO images (transaction_id, file_id) VALUES ?';
+                        const imageValues = images.map(fileId => [transactionId, fileId]);
+                        db.query(imageQuery, [imageValues], (imageErr) => {
+                            if (imageErr) {
+                                console.error('Error inserting images:', imageErr);
+                                return;
+                            }
+                        });
+                    }
+
+                    const updateQuery = 'UPDATE barang SET jumlah = jumlah + ? WHERE id_barang = ?';
+                    const jumlahChange = type === 'in' ? quantity : -quantity;
+                    db.query(updateQuery, [jumlahChange, user.itemId], (err) => {
+                        if (err) {
+                            console.error('Error updating barang quantity:', err);
+                            return;
+                        }
+
+                        const typeEmoji = user.type === 'out' ? '🟥' : '🟩';
+                        const formattedMessage = `Transaksi Tersimpan!\n\nType: ${typeEmoji} *${user.type}* ${typeEmoji}\nQuantity: *${user.quantity}*\nDescription: *${description}*\nMerk: *${merk}*\nInfo Lain: *${user.additionalInfo}*\nLokasi & Tujuan barang: *${user.keterangan}*\n\nDi input oleh: *${user.username}*`;
+                        bot.sendMessage(chatId, formattedMessage, { parse_mode: 'Markdown' });
+                        delete users[chatId]; // Clear user data after transaction
+                    });
                 });
             });
-        });
+        } else {
+            bot.sendMessage(chatId, 'Silahkan unggah gambar yang valid atau ketik "done" untuk selesai.');
+        }
     }
 });
+
+
 
   
 //bot
